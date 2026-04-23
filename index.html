@@ -20,6 +20,8 @@
         .res-grid { display: none; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 20px; }
         .stat { padding: 10px; border-radius: 5px; color: white; text-align: center; font-size: 0.9em; font-weight: bold; }
         .target-box { display: none; background: #fff3cd; padding: 20px; margin-top: 20px; border-radius: 10px; text-align: center; border: 1px solid #ffeeba; color: #856404; }
+        /* Estilo para el Beneficio Real */
+        .real-profit { display: none; background: #2c3e50; color: #f1c40f; padding: 20px; margin-top: 10px; border-radius: 10px; text-align: center; font-size: 1.2em; font-weight: bold; border: 2px solid #f1c40f; }
     </style>
 </head>
 <body>
@@ -67,6 +69,10 @@
             <div class="stat" style="background:#7f8c8d">Ret.:<br><span id="rRet">0</span>€</div>
         </div>
 
+        <div class="real-profit" id="panelReal">
+            BENEFICIO REAL (Neto - IRPF): <span id="rReal">0.00</span> €
+        </div>
+
         <div class="target-box" id="panelObj">
             <p>Para no superar los 1000€ de IRPF necesitas gastar (en Base):</p>
             <strong id="rObj" style="font-size: 1.6em;">0.00 €</strong>
@@ -111,6 +117,9 @@
             snap.forEach(doc => s.innerHTML += `<option value="${doc.id}">${doc.id}</option>`);
         });
         document.getElementById('workspace').style.display = 'none';
+        document.getElementById('panelRes').style.display = 'none';
+        document.getElementById('panelObj').style.display = 'none';
+        document.getElementById('panelReal').style.display = 'none';
     }
 
     function crearTrimestre() {
@@ -123,6 +132,9 @@
         trimActivo = document.getElementById('selTrim').value;
         if(!trimActivo) return;
         document.getElementById('workspace').style.display = 'block';
+        document.getElementById('panelRes').style.display = 'none';
+        document.getElementById('panelObj').style.display = 'none';
+        document.getElementById('panelReal').style.display = 'none';
         db.collection("data").doc(anoActivo).collection("trimestres").doc(trimActivo)
           .onSnapshot(doc => { items = doc.data()?.items || []; render(); });
     }
@@ -163,10 +175,16 @@
             if(r.tipo === 'ingreso') { ivaD += r.iva; bI += r.base; }
             else { ivaS += r.iva; ret += r.ret; if(r.cat !== 'Inversión') bG += r.base; }
         });
+
+        let neto = bI - bG;
+        let irpf = neto * 0.20;
+        let beneficioReal = neto - irpf;
+
         document.getElementById('rIva').innerText = (ivaD - ivaS).toFixed(2);
-        document.getElementById('rNeto').innerText = (bI - bG).toFixed(2);
-        document.getElementById('rIrpf').innerText = ((bI - bG) * 0.20).toFixed(2);
+        document.getElementById('rNeto').innerText = neto.toFixed(2);
+        document.getElementById('rIrpf').innerText = irpf.toFixed(2);
         document.getElementById('rRet').innerText = ret.toFixed(2);
+        document.getElementById('rReal').innerText = beneficioReal.toFixed(2);
         
         let baseParaMil = bI - 5000;
         let faltaGastar = baseParaMil - bG;
@@ -174,6 +192,7 @@
 
         document.getElementById('panelRes').style.display = 'grid';
         document.getElementById('panelObj').style.display = 'block';
+        document.getElementById('panelReal').style.display = 'block';
     }
 
     cargarAnos();
