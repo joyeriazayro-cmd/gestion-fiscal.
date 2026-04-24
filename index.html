@@ -22,7 +22,6 @@
         .target-box { display: none; background: #fff3cd; padding: 20px; margin-top: 20px; border-radius: 10px; text-align: center; border: 1px solid #ffeeba; color: #856404; }
         .real-profit { display: none; background: #2c3e50; color: #f1c40f; padding: 20px; margin-top: 10px; border-radius: 10px; text-align: center; font-size: 1.2em; font-weight: bold; border: 2px solid #f1c40f; }
         .btn-export { width: 100%; padding: 15px; background: var(--exp); color: white; margin-top: 10px; border-radius: 5px; font-weight: bold; display: none; }
-        .small-txt { font-size: 0.75em; color: #7f8c8d; display: block; }
     </style>
 </head>
 <body>
@@ -51,14 +50,13 @@
                     <option value="Retención">✂️ Retención Prof. (15%)</option>
                     <option value="Inversión">🏭 Bien de Inversión</option>
                 </select>
-                <input type="text" id="gConcepto" placeholder="Concepto (ej: Alquiler)" style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
                 <input type="number" id="gTotal" placeholder="Total Factura" style="width: 100%; box-sizing: border-box;">
                 <button style="background:var(--d); width: 100%; margin-top: 10px;" onclick="add('gasto')">Añadir Gasto</button>
             </div>
         </div>
 
         <table id="tabla">
-            <thead><tr><th>Concepto / Tipo</th><th>Base</th><th>IVA</th><th>Total</th><th></th></tr></thead>
+            <thead><tr><th>Concepto</th><th>Base</th><th>IVA</th><th>Total</th><th></th></tr></thead>
             <tbody></tbody>
         </table>
 
@@ -149,11 +147,8 @@
     function add(tipo) {
         let val = parseFloat(tipo === 'ingreso' ? document.getElementById('iTotal').value : document.getElementById('gTotal').value);
         if(!val) return;
-        
         let cat = tipo === 'gasto' ? document.getElementById('gTipo').value : 'Venta';
-        let concepto = tipo === 'gasto' ? document.getElementById('gConcepto').value : 'Ingreso de Venta';
-        
-        let r = { tipo, cat, concepto, total: val, base: 0, iva: 0, ret: 0 };
+        let r = { tipo, cat, total: val, base: 0, iva: 0, ret: 0 };
 
         if(tipo === 'ingreso') { r.base = val/1.21; r.iva = val-r.base; }
         else {
@@ -164,23 +159,13 @@
 
         items.push(r);
         db.collection("data").doc(anoActivo).collection("trimestres").doc(trimActivo).update({ items });
-        
-        // Limpiar campos
-        document.getElementById('iTotal').value = ''; 
-        document.getElementById('gTotal').value = '';
-        document.getElementById('gConcepto').value = '';
+        document.getElementById('iTotal').value = ''; document.getElementById('gTotal').value = '';
     }
 
     function render() {
         const b = document.querySelector('#tabla tbody'); b.innerHTML = '';
         items.forEach((r, i) => {
-            b.innerHTML += `<tr>
-                <td><strong>${r.concepto || 'Sin nombre'}</strong><br><span class="small-txt">${r.cat}</span></td>
-                <td>${r.base.toFixed(2)}€</td>
-                <td>${r.iva.toFixed(2)}€</td>
-                <td>${r.total.toFixed(2)}€</td>
-                <td onclick="borrar(${i})" style="cursor:pointer">❌</td>
-            </tr>`;
+            b.innerHTML += `<tr><td>${r.cat}</td><td>${r.base.toFixed(2)}€</td><td>${r.iva.toFixed(2)}€</td><td>${r.total.toFixed(2)}€</td><td onclick="borrar(${i})" style="cursor:pointer">❌</td></tr>`;
         });
     }
 
@@ -217,15 +202,19 @@
         document.getElementById('btnExport').style.display = 'block';
     }
 
+    // NUEVA FUNCIÓN DE EXPORTACIÓN
     function exportarCSV() {
         if (items.length === 0) return alert("No hay datos para exportar");
-        let csv = "Tipo;Concepto;Detalle;Base;IVA;Retencion;Total\n";
+
+        let csv = "Tipo;Concepto;Base;IVA;Retencion;Total\n";
         items.forEach(r => {
-            csv += `${r.tipo};${r.concepto};${r.cat};${r.base.toFixed(2)};${r.iva.toFixed(2)};${r.ret.toFixed(2)};${r.total.toFixed(2)}\n`;
+            csv += `${r.tipo};${r.cat};${r.base.toFixed(2)};${r.iva.toFixed(2)};${r.ret.toFixed(2)};${r.total.toFixed(2)}\n`;
         });
+
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
+        
         link.setAttribute("href", url);
         link.setAttribute("download", `Zayro_${anoActivo}_${trimActivo}.csv`);
         link.style.visibility = 'hidden';
